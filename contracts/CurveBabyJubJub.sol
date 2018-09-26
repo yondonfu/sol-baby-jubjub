@@ -17,7 +17,7 @@ library CurveBabyJubJub {
      * x3 = (x1y2 + y1x2) / (1 + dx1x2y1y2)
      * y3 = (y1y2 - ax1x2) / (1 - dx1x2y1y2)
      */
-    function pointAdd(uint256 _x1, uint256 _y1, uint256 _x2, uint256 _y2) internal pure returns (uint256 x3, uint256 y3) {
+    function pointAdd(uint256 _x1, uint256 _y1, uint256 _x2, uint256 _y2) internal view returns (uint256 x3, uint256 y3) {
         if (_x1 == 0 && _y1 == 0) {
             return (_x2, _y2);
         }
@@ -40,7 +40,7 @@ library CurveBabyJubJub {
      * @dev Double a point on baby jubjub curve
      * Doubling can be performed with the same formula as addition
      */
-    function pointDouble(uint256 _x1, uint256 _y1) internal pure returns (uint256 x2, uint256 y2) {
+    function pointDouble(uint256 _x1, uint256 _y1) internal view returns (uint256 x2, uint256 y2) {
         return pointAdd(_x1, _y1, _x1, _y1);
     }
 
@@ -48,7 +48,7 @@ library CurveBabyJubJub {
      * @dev Multiply a point on baby jubjub curve by a scalar
      * Use the double and add algorithm
      */
-    function pointMul(uint256 _x1, uint256 _y1, uint256 _d) internal pure returns (uint256 x2, uint256 y2) {
+    function pointMul(uint256 _x1, uint256 _y1, uint256 _d) internal view returns (uint256 x2, uint256 y2) {
         uint256 remaining = _d;
 
         uint256 px = _x1;
@@ -99,20 +99,33 @@ library CurveBabyJubJub {
     /**
      * @dev Compute modular inverse of a number
      */
-    function inverse(uint256 _a) internal pure returns (uint256) {
-        uint256 t = 0;
-        uint256 newT = 1;
-        uint256 r = Q;
-        uint256 newR = _a;
-        uint256 left;
+    function inverse(uint256 _a) internal view returns (uint256) {
+        // We can use Euler's theorem instead of the extended Euclidean algorithm
+        // Since m = Q and Q is prime we have: a^-1 = a^(m - 2) (mod m)
+        return expmod(_a, Q - 2, Q);
+    }
 
-        while (newR != 0) {
-            left = r / newR;
+    /**
+     * @dev Helper function to call the bigModExp precompile
+     */
+    function expmod(uint256 _b, uint256 _e, uint256 _m) internal view returns (uint256 o) {
+        assembly {
+            let memPtr := mload(0x40)
+            mstore(memPtr, 0x20) // Length of base _b
+            mstore(add(memPtr, 0x20), 0x20) // Length of exponent _e
+            mstore(add(memPtr, 0x40), 0x20) // Length of modulus _m
+            mstore(add(memPtr, 0x60), _b) // Base _b
+            mstore(add(memPtr, 0x80), _e) // Exponent _e
+            mstore(add(memPtr, 0xa0), _m) // Modulus _m
 
-            (t, newT) = (newT, addmod(t, Q - mulmod(left, newT, Q), Q));
-            (r, newR) = (newR, r - left * newR);
+            // The bigModExp precompile is at 0x05
+            let success := call(gas, 0x05, 0x0, memPtr, 0xc0, memPtr, 0x20)
+            switch success
+            case 0 {
+                revert(0x0, 0x0)
+            } default {
+                o := mload(memPtr)
+            }
         }
-
-        return t;
     }
 }
