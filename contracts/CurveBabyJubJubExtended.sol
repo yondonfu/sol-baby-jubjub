@@ -82,7 +82,8 @@ library CurveBabyJubJubExtended {
         // D <- a * A
         intermediates[3] = mulmod(A, intermediates[0], Q);
         // E <- (x1 + y1)^2 - A - B
-        intermediates[4] = submod(submod(expmod(addmod(_p[0], _p[1], Q), 2, Q), intermediates[0], Q), intermediates[1], Q);
+        uint256 x1_plus_y1 = addmod(_p[0], _p[1], Q);
+        intermediates[4] = submod(submod(mulmod(x1_plus_y1, x1_plus_y1, Q), intermediates[0], Q), intermediates[1], Q);
         // G <- D + B
         intermediates[5] = addmod(intermediates[3], intermediates[1], Q);
         // F <- G - C
