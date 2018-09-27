@@ -69,6 +69,38 @@ library CurveBabyJubJubExtended {
     }
 
     /**
+     * @dev Double a etec point using dedicated double algorithm
+     */
+    function pointDoubleDedicated(uint256[4] _p) internal view returns (uint256[4] p2) {
+        uint256[8] memory intermediates;
+        // A <- x1 * x1
+        intermediates[0] = mulmod(_p[0], _p[0], Q);
+        // B <- y1 * y1
+        intermediates[1] = mulmod(_p[1], _p[1], Q);
+        // C <- 2 * z1 * z1
+        intermediates[2] = mulmod(mulmod(2, _p[3], Q), _p[3], Q);
+        // D <- a * A
+        intermediates[3] = mulmod(A, intermediates[0], Q);
+        // E <- (x1 + y1)^2 - A - B
+        intermediates[4] = submod(submod(expmod(addmod(_p[0], _p[1], Q), 2, Q), intermediates[0], Q), intermediates[1], Q);
+        // G <- D + B
+        intermediates[5] = addmod(intermediates[3], intermediates[1], Q);
+        // F <- G - C
+        intermediates[6] = submod(intermediates[5], intermediates[2], Q);
+        // H <- D - B
+        intermediates[7] = submod(intermediates[3], intermediates[1], Q);
+
+        // x3 <- E * F
+        p2[0] = mulmod(intermediates[4], intermediates[6], Q);
+        // y3 <- G * H
+        p2[1] = mulmod(intermediates[5], intermediates[7], Q);
+        // t3 <- E * H
+        p2[2] = mulmod(intermediates[4], intermediates[7], Q);
+        // z3 <- F * G
+        p2[3] = mulmod(intermediates[6], intermediates[5], Q);
+    }
+
+    /**
      * @dev Multiply a etec point on baby jubjub curve by a scalar
      * Use the double and add algorithm
      */
