@@ -23,6 +23,25 @@ contract TestCurveBabyJubJubExtended {
         Assert.equal(resPoint[0], 0xF3C160E26FC96C347DD9E705EB5A3E8D661502728609FF95B3B889296901AB5, "should add self");
         Assert.equal(resPoint[1], 0x9979273078B5C735585107619130E62E315C5CAFE683A064F79DFED17EB14E1, "should add self");
     }
+    
+    function test_pointAddASM() public {
+        uint256[2] memory p = [uint256(0), uint256(0)];
+        uint256[4] memory etec = CurveBabyJubJubExtended.point2etec(p);
+        uint256[4] memory resEtec = CurveBabyJubJubExtended.pointAddASM(etec, etec);
+        uint256[2] memory resPoint = CurveBabyJubJubExtended.etec2point(resEtec);
+        Assert.equal(resPoint[0], 0, "should add (0, 0)");
+        Assert.equal(resPoint[1], 0, "should add (0, 0)");
+
+        p = [
+            0x274DBCE8D15179969BC0D49FA725BDDF9DE555E0BA6A693C6ADB52FC9EE7A82C,
+            0x5CE98C61B05F47FE2EAE9A542BD99F6B2E78246231640B54595FEBFD51EB853
+        ];
+        etec = CurveBabyJubJubExtended.point2etec(p);
+        resEtec = CurveBabyJubJubExtended.pointAddASM(etec, etec);
+        resPoint = CurveBabyJubJubExtended.etec2point(resEtec);
+        Assert.equal(resPoint[0], 0xF3C160E26FC96C347DD9E705EB5A3E8D661502728609FF95B3B889296901AB5, "should add self");
+        Assert.equal(resPoint[1], 0x9979273078B5C735585107619130E62E315C5CAFE683A064F79DFED17EB14E1, "should add self");
+    }
 
     function test_pointDouble() public {
         uint256[2] memory p = [
@@ -36,6 +55,18 @@ contract TestCurveBabyJubJubExtended {
         Assert.equal(resPoint[1], 0x9979273078B5C735585107619130E62E315C5CAFE683A064F79DFED17EB14E1, "should double");
     }
 
+    function test_pointDoubleASM() public {
+        uint256[2] memory p = [
+            0x274dbce8d15179969bc0d49fa725bddf9de555e0ba6a693c6adb52fc9ee7a82c,
+            0x5ce98c61b05f47fe2eae9a542bd99f6b2e78246231640b54595febfd51eb853
+        ];
+
+        uint256[4] memory res = CurveBabyJubJubExtended.pointDoubleASM(CurveBabyJubJubExtended.point2etec(p));
+        uint256[2] memory resPoint = CurveBabyJubJubExtended.etec2point(res);
+        Assert.equal(resPoint[0], 0xF3C160E26FC96C347DD9E705EB5A3E8D661502728609FF95B3B889296901AB5, "should double");
+        Assert.equal(resPoint[1], 0x9979273078B5C735585107619130E62E315C5CAFE683A064F79DFED17EB14E1, "should double");
+    }
+
     function test_pointDoubleDedicated() public {
         uint256[2] memory p = [
             0x274dbce8d15179969bc0d49fa725bddf9de555e0ba6a693c6adb52fc9ee7a82c,
@@ -44,6 +75,19 @@ contract TestCurveBabyJubJubExtended {
 
         uint256[4] memory res = CurveBabyJubJubExtended.pointDoubleDedicated(CurveBabyJubJubExtended.point2etec(p));
         uint256[2] memory resPoint = CurveBabyJubJubExtended.etec2point(res);
+        Assert.equal(resPoint[0], 0xF3C160E26FC96C347DD9E705EB5A3E8D661502728609FF95B3B889296901AB5, "should double");
+        Assert.equal(resPoint[1], 0x9979273078B5C735585107619130E62E315C5CAFE683A064F79DFED17EB14E1, "should double");
+    }
+
+    function test_pointDoubleDedicatedASM() public {
+        uint256[2] memory p = [
+            0x274dbce8d15179969bc0d49fa725bddf9de555e0ba6a693c6adb52fc9ee7a82c,
+            0x5ce98c61b05f47fe2eae9a542bd99f6b2e78246231640b54595febfd51eb853
+        ];
+        uint256[4] memory etec = CurveBabyJubJubExtended.point2etec(p);
+
+        (uint256 x, uint256 y, uint256 t, uint256 z) = CurveBabyJubJubExtended.pointDoubleDedicatedASM(etec[0], etec[1], etec[2], etec[3]);
+        uint256[2] memory resPoint = CurveBabyJubJubExtended.etec2point([x, y, t, z]);
         Assert.equal(resPoint[0], 0xF3C160E26FC96C347DD9E705EB5A3E8D661502728609FF95B3B889296901AB5, "should double");
         Assert.equal(resPoint[1], 0x9979273078B5C735585107619130E62E315C5CAFE683A064F79DFED17EB14E1, "should double");
     }

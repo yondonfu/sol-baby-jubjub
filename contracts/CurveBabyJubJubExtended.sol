@@ -23,7 +23,7 @@ library CurveBabyJubJubExtended {
      * t3 = (y1y2 - ax1x2) * (x1y2 + y1x2)
      * z3 = (z1z2 - dt1t2) * (z1z2 + dt1t2)
      */
-    function pointAdd(uint256[4] _p1, uint256[4] _p2) internal view returns (uint256[4] p3) {
+    function pointAdd(uint256[4] _p1, uint256[4] _p2) internal pure returns (uint256[4] p3) {
         if (_p1[0] == 0 && _p1[1] == 0 && _p1[2] == 0 && _p1[3] == 0) {
             return _p2;
         }
@@ -61,17 +61,94 @@ library CurveBabyJubJubExtended {
     }
 
     /**
+     * @dev Add 2 etec points on baby jubjub curve
+     * x3 = (x1y2 + y1x2) * (z1z2 - dt1t2)
+     * y3 = (y1y2 - ax1x2) * (z1z2 + dt1t2)
+     * t3 = (y1y2 - ax1x2) * (x1y2 + y1x2)
+     * z3 = (z1z2 - dt1t2) * (z1z2 + dt1t2)
+     */
+    function pointAddASM(
+        uint256[4] _p1,
+        uint256[4] _p2
+    ) 
+        internal
+        pure
+        returns (uint256[4] p3)
+    {
+        if (_p1[0] == 0 && _p1[1] == 0 && _p1[2] == 0 && _p1[3] == 0) {
+            return _p2;
+        }
+
+        if (_p2[0] == 0 && _p2[1] == 0 && _p2[2] == 0 && _p2[3] == 0) {
+            return _p1;
+        }
+
+        assembly {
+            // A <- x1 * x2
+            let a := mulmod(mload(_p1), mload(_p2), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // B <- y1 * y2
+            let b := mulmod(mload(add(_p1, 0x20)), mload(add(_p2, 0x20)), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // C <- d * t1 * t2
+            let c := mulmod(mulmod(0x292F8, mload(add(_p1, 0x40)), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001), mload(add(_p2, 0x40)), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // D <- z1 * z2
+            let d := mulmod(mload(add(_p1, 0x60)), mload(add(_p2, 0x60)), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // E <- (x1 + y1) * (x2 + y2) - A - B
+            let e := mulmod(addmod(mload(_p1), mload(add(_p1, 0x20)), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001), addmod(mload(_p2), mload(add(_p2, 0x20)), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            if lt(e, add(a, 1)) {
+                e := add(e, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            }
+            e := mod(sub(e, a), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            if lt(e, add(b, 1)) {
+                e := add(e, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            }
+            e := mod(sub(e, b), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // F <- D - C
+            let f := d
+            if lt(f, add(c, 1)) {
+                f := add(f, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            }
+            f := mod(sub(f, c), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // G <- D + C
+            let g := addmod(d, c, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // H <- B - a * A
+            let aA := mulmod(0x292FC, a, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            let h := b
+            if lt(h, add(aA, 1)) {
+                h := add(h, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            }
+            h := mod(sub(h, aA), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+
+            // x3 <- E * F
+            mstore(p3, mulmod(e, f, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001))
+            // y3 <- G * H
+            mstore(add(p3, 0x20), mulmod(g, h, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001))
+            // t3 <- E * H
+            mstore(add(p3, 0x40), mulmod(e, h, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001))
+            // z3 <- F * G
+            mstore(add(p3, 0x60), mulmod(f, g, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001))
+        }
+    }
+
+    /**
      * @dev Double a etec point on baby jubjub curve
      * Doubling can be performed with the same formula as addition
      */
-    function pointDouble(uint256[4] _p) internal view returns (uint256[4] p2) {
+    function pointDouble(uint256[4] _p) internal pure returns (uint256[4] p2) {
         p2 = pointAdd(_p, _p);
+    }
+
+    /**
+     * @dev Double a etec point on baby jubjub curve
+     * Doubling can be performed with the same formula as addition
+     */
+    function pointDoubleASM(uint256[4] _p) internal pure returns (uint256[4] p2) {
+        p2 = pointAddASM(_p, _p);
     }
 
     /**
      * @dev Double a etec point using dedicated double algorithm
      */
-    function pointDoubleDedicated(uint256[4] _p) internal view returns (uint256[4] p2) {
+    function pointDoubleDedicated(uint256[4] _p) internal pure returns (uint256[4] p2) {
         uint256[8] memory intermediates;
         // A <- x1 * x1
         intermediates[0] = mulmod(_p[0], _p[0], Q);
@@ -102,10 +179,69 @@ library CurveBabyJubJubExtended {
     }
 
     /**
+     * @dev Double a etec point using dedicated double algorithm
+     */
+    function pointDoubleDedicatedASM(
+        uint256 _x, 
+        uint256 _y,
+        uint256 _t,
+        uint256 _z
+    ) 
+        internal 
+        pure
+        returns (uint256 x, uint256 y, uint256 t, uint256 z)
+    {
+        assembly {
+            // A <- x1 * x1
+            let a := mulmod(_x, _x, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // B <- y1 * y1
+            let b := mulmod(_y, _y, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // C <- 2 * z1 * z1
+            let c := mulmod(mulmod(2, _z, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001), _z, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // D <- a * A
+            let d := mulmod(0x292FC, a, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // E <- (x1 + y1)^2 - A - B
+            let e := addmod(_x, _y, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            e := mulmod(e, e, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            if lt(e, add(a, 1)) {
+                e := add(e, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            }
+            e := mod(sub(e, a), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            if lt(e, add(b, 1)) {
+                e := add(e, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            }
+            e := mod(sub(e, b), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // G <- D + B
+            let g := addmod(d, b, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // F <- G - C
+            let f := g
+            if lt(f, add(c, 1)) {
+                f := add(f, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            }
+            f := mod(sub(f, c), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // H <- D - B
+            let h := d
+            if lt(h, add(b, 1)) {
+                h := add(h, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            }
+            h := mod(sub(h, b), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+
+            // x3 <- E * F
+            x := mulmod(e, f, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // y3 <- G * H
+            y := mulmod(g, h, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // t3 <- E * H
+            t := mulmod(e, h, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            // z3 <- F * G
+            z := mulmod(f, g, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+        }
+    }
+
+    /**
      * @dev Multiply a etec point on baby jubjub curve by a scalar
      * Use the double and add algorithm
      */
-    function pointMul(uint256[4] _p, uint256 _d) internal view returns (uint256[4] p) {
+    function pointMul(uint256[4] _p, uint256 _d) internal pure returns (uint256[4] p) {
         uint256 remaining = _d;
 
         uint256[4] memory pp = _p;
@@ -161,7 +297,7 @@ library CurveBabyJubJubExtended {
             mstore(add(memPtr, 0xa0), _m) // Modulus _m
 
             // The bigModExp precompile is at 0x05
-            let success := call(gas, 0x05, 0x0, memPtr, 0xc0, memPtr, 0x20)
+            let success := staticcall(gas, 0x05, memPtr, 0xc0, memPtr, 0x20)
             switch success
             case 0 {
                 revert(0x0, 0x0)
