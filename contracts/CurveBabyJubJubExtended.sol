@@ -84,48 +84,52 @@ library CurveBabyJubJubExtended {
         }
 
         assembly {
+            let localQ := 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001 
+            let localA := 0x292FC
+            let localD := 0x292F8 
+
             // A <- x1 * x2
-            let a := mulmod(mload(_p1), mload(_p2), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            let a := mulmod(mload(_p1), mload(_p2), localQ)
             // B <- y1 * y2
-            let b := mulmod(mload(add(_p1, 0x20)), mload(add(_p2, 0x20)), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            let b := mulmod(mload(add(_p1, 0x20)), mload(add(_p2, 0x20)), localQ)
             // C <- d * t1 * t2
-            let c := mulmod(mulmod(0x292F8, mload(add(_p1, 0x40)), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001), mload(add(_p2, 0x40)), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            let c := mulmod(mulmod(localD, mload(add(_p1, 0x40)), localQ), mload(add(_p2, 0x40)), localQ)
             // D <- z1 * z2
-            let d := mulmod(mload(add(_p1, 0x60)), mload(add(_p2, 0x60)), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            let d := mulmod(mload(add(_p1, 0x60)), mload(add(_p2, 0x60)), localQ)
             // E <- (x1 + y1) * (x2 + y2) - A - B
-            let e := mulmod(addmod(mload(_p1), mload(add(_p1, 0x20)), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001), addmod(mload(_p2), mload(add(_p2, 0x20)), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            let e := mulmod(addmod(mload(_p1), mload(add(_p1, 0x20)), localQ), addmod(mload(_p2), mload(add(_p2, 0x20)), localQ), localQ)
             if lt(e, add(a, 1)) {
-                e := add(e, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+                e := add(e, localQ)
             }
-            e := mod(sub(e, a), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            e := mod(sub(e, a), localQ)
             if lt(e, add(b, 1)) {
-                e := add(e, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+                e := add(e, localQ)
             }
-            e := mod(sub(e, b), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            e := mod(sub(e, b), localQ)
             // F <- D - C
             let f := d
             if lt(f, add(c, 1)) {
-                f := add(f, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+                f := add(f, localQ)
             }
-            f := mod(sub(f, c), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            f := mod(sub(f, c), localQ)
             // G <- D + C
-            let g := addmod(d, c, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            let g := addmod(d, c, localQ)
             // H <- B - a * A
-            let aA := mulmod(0x292FC, a, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            let aA := mulmod(localA, a, localQ)
             let h := b
             if lt(h, add(aA, 1)) {
-                h := add(h, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+                h := add(h, localQ)
             }
-            h := mod(sub(h, aA), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            h := mod(sub(h, aA), localQ)
 
             // x3 <- E * F
-            mstore(p3, mulmod(e, f, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001))
+            mstore(p3, mulmod(e, f, localQ))
             // y3 <- G * H
-            mstore(add(p3, 0x20), mulmod(g, h, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001))
+            mstore(add(p3, 0x20), mulmod(g, h, localQ))
             // t3 <- E * H
-            mstore(add(p3, 0x40), mulmod(e, h, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001))
+            mstore(add(p3, 0x40), mulmod(e, h, localQ))
             // z3 <- F * G
-            mstore(add(p3, 0x60), mulmod(f, g, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001))
+            mstore(add(p3, 0x60), mulmod(f, g, localQ))
         }
     }
 
@@ -192,48 +196,51 @@ library CurveBabyJubJubExtended {
         returns (uint256 x, uint256 y, uint256 t, uint256 z)
     {
         assembly {
+            let localQ := 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001 
+            let localA := 0x292FC
+
             // A <- x1 * x1
-            let a := mulmod(_x, _x, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            let a := mulmod(_x, _x, localQ)
             // B <- y1 * y1
-            let b := mulmod(_y, _y, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            let b := mulmod(_y, _y, localQ)
             // C <- 2 * z1 * z1
-            let c := mulmod(mulmod(2, _z, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001), _z, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            let c := mulmod(mulmod(2, _z, localQ), _z, localQ)
             // D <- a * A
-            let d := mulmod(0x292FC, a, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            let d := mulmod(localA, a, localQ)
             // E <- (x1 + y1)^2 - A - B
-            let e := addmod(_x, _y, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
-            e := mulmod(e, e, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            let e := addmod(_x, _y, localQ)
+            e := mulmod(e, e, localQ)
             if lt(e, add(a, 1)) {
-                e := add(e, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+                e := add(e, localQ)
             }
-            e := mod(sub(e, a), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            e := mod(sub(e, a), localQ)
             if lt(e, add(b, 1)) {
-                e := add(e, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+                e := add(e, localQ)
             }
-            e := mod(sub(e, b), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            e := mod(sub(e, b), localQ)
             // G <- D + B
-            let g := addmod(d, b, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            let g := addmod(d, b, localQ)
             // F <- G - C
             let f := g
             if lt(f, add(c, 1)) {
-                f := add(f, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+                f := add(f, localQ)
             }
-            f := mod(sub(f, c), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            f := mod(sub(f, c), localQ)
             // H <- D - B
             let h := d
             if lt(h, add(b, 1)) {
-                h := add(h, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+                h := add(h, localQ)
             }
-            h := mod(sub(h, b), 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            h := mod(sub(h, b), localQ)
 
             // x3 <- E * F
-            x := mulmod(e, f, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            x := mulmod(e, f, localQ)
             // y3 <- G * H
-            y := mulmod(g, h, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            y := mulmod(g, h, localQ)
             // t3 <- E * H
-            t := mulmod(e, h, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            t := mulmod(e, h, localQ)
             // z3 <- F * G
-            z := mulmod(f, g, 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001)
+            z := mulmod(f, g, localQ)
         }
     }
 
